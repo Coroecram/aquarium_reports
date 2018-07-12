@@ -15,10 +15,11 @@
     </head>
     <body>
 
-        <p>Here is a p tag.</p>
-
-        <svg id='temp'></svg></br>
-        <svg id='pH'></svg></br>
+        <p>Aquarium Temperature</p>
+        <svg id='temp'></svg>
+        <p>Aquarium pH</p>
+        <svg id='ph'></svg>
+        <p>Aquarium Lux</p>
         <svg id='lux'></svg></br>
 
         <script src="d3.v5.js"></script>
@@ -51,10 +52,29 @@
               width = 500 - margin.left - margin.right,
               height = 300 - margin.top - margin.bottom;
 
+          var svgTemp = d3.select('#temp')
+                        .attr('width', width + margin.left + margin.right)
+                        .attr('height', height + margin.top + margin.bottom)
+                        .append('g')
+                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-          var x = d3.scaleTime().range([0, width]);
-          var y = d3.scaleLinear().range([height, 0]);
 
+          var svgpH = d3.select('#ph')
+                        .attr('width', width + margin.left + margin.right)
+                        .attr('height', height + margin.top + margin.bottom)
+                        .append('g')
+                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+          var svgLux = d3.select('#lux')
+                        .attr('width', width + margin.left + margin.right)
+                        .attr('height', height + margin.top + margin.bottom)
+                        .append('g')
+                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+
+          tempGraph(tempData, svgTemp);
+          phGraph(phData, svgpH);
+          luxGraph(luxData, svgLux);
 
         </script>
 

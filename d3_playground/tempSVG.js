@@ -1,15 +1,11 @@
-function tempGraph(tempData) {
+function tempGraph(tempData, svgTemp) {
+
+  var x = d3.scaleTime().range([0, width]);
+  var y = d3.scaleLinear().range([height, 0]);
+
   var valueLine = d3.line()
                     .x(function(d) { return x(d.datetime); })
                     .y(function(d) { return y(d.temp); });
-
-  var svgTemp = d3.select('#temp')
-                  .attr('width', width + margin.left + margin.right)
-                  .attr('height', height + margin.top + margin.bottom)
-                .append('g')
-                  .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-  // console.log(dater);
 
   x.domain(d3.extent(data.datetime, function(d) { return d; }));
   y.domain([0, (d3.max(data.temp, function(d) { return d; }) + 3) ]);
