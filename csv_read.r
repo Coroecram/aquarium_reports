@@ -16,19 +16,19 @@ df_aqua$observed_at <- anytime(df_aqua$observed_at)
 # df_aqua$ph_read
 # df_aqua$temp_read
 # df_aqua$lux_read
-par(mfrow=c(3,2))
+# par(mfrow=c(3,2))
 
-plot(df_aqua$observed_at, df_aqua$ph_read)
-lines(df_aqua$observed_at, df_aqua$ph_read)
-scatter.smooth(x=df_aqua$observed_at, y=df_aqua$ph_read, main="Aquarium pH")
+plot(df_aqua$observed_at, df_aqua$ph_read, pch=".", col="orange", main="Aquarium pH", xlab="Observed At", ylab="pH Reading")
+lines(df_aqua$observed_at, df_aqua$ph_read, col="orange")
+scatter.smooth(x=df_aqua$observed_at, y=df_aqua$ph_read, pch="+", col="orange", main="Aquarium pH")
 
-plot(df_aqua$observed_at, df_aqua$temp_read)
-lines(df_aqua$observed_at, df_aqua$temp_read)
-scatter.smooth(x=df_aqua$observed_at, y=df_aqua$temp_read, main="Aquarium Temperature")
+plot(df_aqua$observed_at, df_aqua$temp_read, pch=".", col="blue", main="Aquarium Temperature", xlab="Observed At", ylab="Temp Reading")
+lines(df_aqua$observed_at, df_aqua$temp_read, col="blue")
+scatter.smooth(x=df_aqua$observed_at, y=df_aqua$temp_read, pch="+", col="blue", main="Aquarium Temperature")
 
-plot(df_aqua$observed_at, df_aqua$lux_read)
-lines(df_aqua$observed_at, df_aqua$lux_read)
-scatter.smooth(x=df_aqua$observed_at, y=df_aqua$lux_read, main="Aquarium Lux")
+plot(df_aqua$observed_at, df_aqua$lux_read, pch=".", col="green", main="Aquarium Lux", xlab="Observed At", ylab="Lux Reading")
+lines(df_aqua$observed_at, df_aqua$lux_read, col="green")
+scatter.smooth(x=df_aqua$observed_at, y=df_aqua$lux_read, pch="+", col="green", main="Aquarium Lux")
 
 bin <- hexbin(df_aqua$observed_at, df_aqua$ph_read)
 plot(bin, main = "pH Hexagonal Binning")
