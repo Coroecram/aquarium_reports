@@ -95,7 +95,7 @@ ui <- fluidPage(
                   tabPanel(title = "Data",
                          DT::dataTableOutput(outputId = "tabTable"))
       ),
-      DT::dataTableOutput(outputId = "beneathTable")
+        conditionalPanel("input.show_data == true", DT::dataTableOutput(outputId = "beneathTable"))
     )
   )
 )
@@ -104,12 +104,12 @@ ui <- fluidPage(
 server <- function(input, output, session) {
 
   selected_readings <- reactive({
-    filter(df_aqua, observed_at %>% input$timeRange[1] & observed_at %<% input$timeRange[2])
+    df_aqua %>% filter (observed_at > input$timeRange[1] & observed_at < input$timeRange[2])
   })
 
   # Create scatterplot object of the pH data
   output$phPlot <- renderPlot({
-    ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$ph_read)) +
+    ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$ph_read)) +
       geom_line() +
       xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
@@ -119,7 +119,7 @@ server <- function(input, output, session) {
 
   # Create scatterplot object of the Temperature data
   output$tempPlot <- renderPlot({
-    ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$temp_read)) +
+    ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$temp_read)) +
       geom_line() +
       xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
@@ -129,7 +129,7 @@ server <- function(input, output, session) {
 
   # Create scatterplot object of the pH data
   output$luxPlot <- renderPlot({
-    ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$lux_read)) +
+    ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$lux_read)) +
       geom_line() +
       xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
@@ -140,19 +140,18 @@ server <- function(input, output, session) {
   df_aqua$str_observed_at = format(df_aqua$observed_at, "%B %d, %Y %H:%M:%S %p")
 
   output$tabTable <- DT::renderDataTable(
-    DT::datatable(data = subset(df_aqua, select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
+    DT::datatable(data = subset(selected_readings(), select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
                   colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
                   options = list(pageLength = 10),
                   rownames = FALSE)
   )
 
   output$beneathTable <- DT::renderDataTable(
-    if(input$show_data) {
-      DT::datatable(data = subset(df_aqua, select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
+      DT::datatable(data = subset(selected_readings(), select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
                   colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
                   options = list(pageLength = 5),
                   rownames = FALSE)
-    })
+  )
 
 
                   observeEvent(input$show_data, {
