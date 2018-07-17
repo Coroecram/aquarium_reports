@@ -13,6 +13,7 @@ pw <- {
 
 # loads the PostgreSQL driver
 drv <- DBI::dbDriver("PostgreSQL")
+
 # creates a connection to the postgres database
 # note that "con" will be used later in each connection to the database
 con <- dbConnect(drv, dbname = "test_python",
@@ -27,9 +28,11 @@ dbExistsTable(con, "aquarium_data")
 # query the data from postgreSQL
 df_aqua <- dbGetQuery(con, "SELECT * from aquarium_data;")
 
+dbDisconnect(con)
 
-# colnames(df_aqua)
-head(df_aqua)
+min_time = min(df_aqua$observed_at)
+max_time = max(df_aqua$observed_at)
+
 
 # Define UI for application that plots features of movies
 ui <- fluidPage(
@@ -42,23 +45,29 @@ ui <- fluidPage(
 
     # Inputs
     sidebarPanel(
-
-      h3("Plotting"),      # Third level header: Plotting
+      # Date input
+      sliderInput("timeRange", label = "Time range",
+                   min = as.POSIXct(trunc(min_time, "mins")),
+                   max = as.POSIXct(trunc(max_time, "mins")),
+                   value = c(as.POSIXct(trunc(min_time, "mins")),
+                             as.POSIXct(trunc(max_time, "mins"))),
+                   timeFormat = "%m/%d/%y %H:%M%p"
+      ),
 
       # Select variable for y-axis
-      selectInput(inputId = "outputFormat",
-                  label = "Output Format:",
-                  choices = c("Tabs",
-                              "2 x 2",
-                              "Vertical"),
-                  selected = "Tabs"),
+      # selectInput(inputId = "outputFormat",
+      #             label = "Output Format:",
+      #             choices = c("Tabs",
+      #                         "2 x 2",
+      #                         "Vertical"),
+      #             selected = "Tabs"),
 
       hr(),
 
       # Show data table
       checkboxInput(inputId = "show_data",
-                    label = "Show data table",
-                    value = TRUE),
+                    label = "Show Data Table Below",
+                    value = FALSE),
 
       # Built with Shiny by RStudio
       br(), br(),
@@ -84,9 +93,9 @@ ui <- fluidPage(
                          plotOutput(outputId = "luxPlot")),
                          br(),
                   tabPanel(title = "Data",
-                           br(),
-                           DT::dataTableOutput(outputId = "readtable"))
-      )
+                         DT::dataTableOutput(outputId = "tabTable"))
+      ),
+      DT::dataTableOutput(outputId = "beneathTable")
     )
   )
 )
@@ -94,23 +103,15 @@ ui <- fluidPage(
 # Define server function required to create the scatterplot
 server <- function(input, output, session) {
 
-  # Create a subset of data filtering for selected title types
-  movies_selected <- reactive({
-    req(input$selected_type) # ensure availablity of value before proceeding
-    filter(movies, title_type %in% input$selected_type)
+  selected_readings <- reactive({
+    filter(df_aqua, observed_at %>% input$timeRange[1] & observed_at %<% input$timeRange[2])
   })
-
-  # x and y as reactive expressions
-  x <- reactive({ toTitleCase(str_replace_all(input$x, "_", " ")) })
-  y <- reactive({ toTitleCase(str_replace_all(input$y, "_", " ")) })
 
   # Create scatterplot object of the pH data
   output$phPlot <- renderPlot({
     ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$ph_read)) +
       geom_line() +
-      scale_x_datetime(date_breaks = "1 day",
-                       date_labels = "%m/%d/%y",
-                       date_minor_breaks = "6 hours") +
+      xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
            y = "pH Reading",
            title = toTitleCase("Aquarium pH"))
@@ -120,9 +121,7 @@ server <- function(input, output, session) {
   output$tempPlot <- renderPlot({
     ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$temp_read)) +
       geom_line() +
-      scale_x_datetime(date_breaks = "1 day",
-                       date_labels = "%m/%d/%y",
-                       date_minor_breaks = "6 hours") +
+      xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
            y = "Celsius Reading",
            title = toTitleCase("Aquarium Temperature"))
@@ -132,43 +131,37 @@ server <- function(input, output, session) {
   output$luxPlot <- renderPlot({
     ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$lux_read)) +
       geom_line() +
-      scale_x_datetime(date_breaks = "1 day",
-                       date_labels = "%m/%d/%y",
-                       date_minor_breaks = "6 hours") +
+      xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
            y = "Lux Reading",
            title = toTitleCase("Aquarium Lux"))
   })
 
-  # # Create description of plot
-  # output$description <- renderText({
-  #   paste("The plot above shows the relationship between",
-  #         x(),
-  #         "and",
-  #         y(),
-  #         "for",
-  #         nrow(movies_selected()),
-  #         "movies.")
-  # })
   df_aqua$str_observed_at = format(df_aqua$observed_at, "%B %d, %Y %H:%M:%S %p")
 
-  # Print data table if checked
-  output$readtable <- DT::renderDataTable(
+  output$tabTable <- DT::renderDataTable(
     DT::datatable(data = subset(df_aqua, select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
                   colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
                   options = list(pageLength = 10),
                   rownames = FALSE)
   )
 
-  # Display data table tab only if show_data is checked
-  # observeEvent(input$show_data, {
-  #   if(input$show_data){
-  #     showTab(inputId = "tabsetpanel", target = "Data", select = TRUE)
-  #   } else {
-  #     hideTab(inputId = "tabsetpanel", target = "Data")
-  #   }
-  # })
+  output$beneathTable <- DT::renderDataTable(
+    if(input$show_data) {
+      DT::datatable(data = subset(df_aqua, select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
+                  colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
+                  options = list(pageLength = 5),
+                  rownames = FALSE)
+    })
 
+
+                  observeEvent(input$show_data, {
+                    if(input$show_data){
+                      hideTab(inputId = "tabsetpanel", target = "Data")
+                    } else {
+                      showTab(inputId = "tabsetpanel", target = "Data")
+                    }
+                  })
 }
 
 # Create Shiny app object
