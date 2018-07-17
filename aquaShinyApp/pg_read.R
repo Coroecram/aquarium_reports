@@ -27,7 +27,8 @@ df_aqua <- dbGetQuery(con, "SELECT * from aquarium_data;")
 
 # colnames(df_aqua)
 head(df_aqua)
-df_aqua$observed_at
+tail(df_aqua)
+# df_aqua$observed_at
 # 2018-07-03 06:41:46
 # df_aqua$ph_read
 # df_aqua$temp_read

@@ -108,6 +108,9 @@ server <- function(input, output, session) {
   output$phPlot <- renderPlot({
     ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$ph_read)) +
       geom_line() +
+      scale_x_datetime(date_breaks = "1 day",
+                       date_labels = "%m/%d/%y",
+                       date_minor_breaks = "6 hours") +
       labs(x = "Time Observed",
            y = "pH Reading",
            title = toTitleCase("Aquarium pH"))
@@ -117,6 +120,9 @@ server <- function(input, output, session) {
   output$tempPlot <- renderPlot({
     ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$temp_read)) +
       geom_line() +
+      scale_x_datetime(date_breaks = "1 day",
+                       date_labels = "%m/%d/%y",
+                       date_minor_breaks = "6 hours") +
       labs(x = "Time Observed",
            y = "Celsius Reading",
            title = toTitleCase("Aquarium Temperature"))
@@ -126,6 +132,9 @@ server <- function(input, output, session) {
   output$luxPlot <- renderPlot({
     ggplot(data = df_aqua, aes_string(x = df_aqua$observed_at, y = df_aqua$lux_read)) +
       geom_line() +
+      scale_x_datetime(date_breaks = "1 day",
+                       date_labels = "%m/%d/%y",
+                       date_minor_breaks = "6 hours") +
       labs(x = "Time Observed",
            y = "Lux Reading",
            title = toTitleCase("Aquarium Lux"))
@@ -141,10 +150,12 @@ server <- function(input, output, session) {
   #         nrow(movies_selected()),
   #         "movies.")
   # })
+  df_aqua$str_observed_at = format(df_aqua$observed_at, "%B %d, %Y %H:%M:%S %p")
 
   # Print data table if checked
   output$readtable <- DT::renderDataTable(
-    DT::datatable(data = df_aqua,
+    DT::datatable(data = subset(df_aqua, select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
+                  colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
                   options = list(pageLength = 10),
                   rownames = FALSE)
   )
