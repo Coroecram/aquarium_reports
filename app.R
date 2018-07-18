@@ -1,8 +1,11 @@
 library(shiny)
 library(shinythemes)
+library(readr)
 library(ggplot2)
+library(stringr)
 library(dplyr)
-
+library(DT)
+library(tools)
 require("RPostgreSQL")
 pw <- {
   "test"
