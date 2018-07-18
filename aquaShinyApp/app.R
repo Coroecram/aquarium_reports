@@ -5,7 +5,7 @@ library(dplyr)
 
 require("RPostgreSQL")
 pw <- {
-  "test"
+  "postgres"
 }
 
 # loads the PostgreSQL driver
@@ -13,9 +13,9 @@ drv <- DBI::dbDriver("PostgreSQL")
 
 # creates a connection to the postgres database
 # note that "con" will be used later in each connection to the database
-con <- dbConnect(drv, dbname = "test_python",
+con <- dbConnect(drv, dbname = "aquarium",
                  host = "localhost", port = 5432,
-                 user = "test_user", password = pw)
+                 user = "postgres", password = pw)
 rm(pw) # removes the password
 
 # check for the cartable

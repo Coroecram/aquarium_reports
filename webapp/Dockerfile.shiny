@@ -1,7 +1,7 @@
 FROM rocker/tidyverse
 MAINTAINER contact@mikebudnick.com
 
-RUN Rscript -e "install.packages(c('shiny', 'DT', 'shinythemes', 'ggplot2', 'dplyr'))"
+RUN Rscript -e "install.packages(c('shiny', 'shinythemes', 'ggplot2', 'dplyr'))"
 
 # See https://github.com/rocker-org/rocker-versioned/blob/master/rstudio/README.md
 # for shiny options
