@@ -6,7 +6,7 @@ library(DT)
 
 require("RPostgreSQL")
 pw <- {
-  "test"
+  Sys.getenv("AWS_PG_PW")
 }
 
 # loads the PostgreSQL driver
@@ -14,9 +14,9 @@ drv <- DBI::dbDriver("PostgreSQL")
 
 # creates a connection to the postgres database
 # note that "con" will be used later in each connection to the database
-con <- dbConnect(drv, dbname = "test_python",
-                 host = "localhost", port = 5432,
-                 user = "test_user", password = pw)
+con <- dbConnect(drv, dbname = "aquarium",
+                 host = Sys.getenv("AWS_PG_HOST"), port = 5432,
+                 user = Sys.getenv("AWS_PG_USER"), password = pw)
 rm(pw) # removes the password
 
 # check for the cartable
@@ -112,7 +112,7 @@ server <- function(input, output, session) {
       xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
            y = "pH Reading",
-           title = toTitleCase("Aquarium pH"))
+           title = "Aquarium pH")
   })
 
   # Create scatterplot object of the Temperature data
@@ -122,7 +122,7 @@ server <- function(input, output, session) {
       xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
            y = "Celsius Reading",
-           title = toTitleCase("Aquarium Temperature"))
+           title = "Aquarium Temperature")
   })
 
   # Create scatterplot object of the pH data
@@ -132,7 +132,7 @@ server <- function(input, output, session) {
       xlim(input$timeRange[1], input$timeRange[2]) +
       labs(x = "Time Observed",
            y = "Lux Reading",
-           title = toTitleCase("Aquarium Lux"))
+           title = "Aquarium Lux")
   })
 
   df_aqua$str_observed_at = format(df_aqua$observed_at, "%B %d, %Y %H:%M:%S %p")
