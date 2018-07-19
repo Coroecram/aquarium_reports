@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import psycopg2
+import os
 
 #def insert_csv_data():
 
@@ -9,11 +10,11 @@ if __name__ == '__main__':
     conn = None
     try:
         # connect to the PostgreSQL database
-        conn = psycopg2.connect("host=localhost dbname=test_python user=test_user password=test")
+        conn = psycopg2.connect("host=" + os.environ["AWS_PG_HOST"] + " dbname=aquarium user=" + os.environ["AWS_PG_USER"] + " password=" + os.environ["AWS_PG_PW"])
         # create a new cursor
         cur = conn.cursor()
         cur.execute(create_table)
-        with open('/home/michael/Documents/aqua_reports/20180717_data.csv', 'r') as f:
+        with open('/home/michael/Documents/aqua_reports/20180719_data.csv', 'r') as f:
             cur.copy_from(f, 'aquarium_data', sep=',', columns=('observed_at','ph_read','temp_read','lux_read'))
 
         conn.commit()
