@@ -1,0 +1,1 @@
+docker build --build-arg AWS_PG_HOST=$AWS_PG_HOST --build-arg AWS_PG_USER=$AWS_PG_USER --build-arg AWS_PG_PW=$AWS_PG_PW .
