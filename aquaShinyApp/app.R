@@ -2,6 +2,7 @@ library(shiny)
 library(shinythemes)
 library(ggplot2)
 library(dplyr)
+library(DT)
 
 require("RPostgreSQL")
 pw <- {
