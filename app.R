@@ -10,11 +10,12 @@ require("RPostgreSQL")
 aws_pg <- dbPool(
   DBI::dbDriver("PostgreSQL"),
   dbname = "aquarium",
-  host = Sys.getenv("AWS_PG_HOST"), port = 5432,
-  user = Sys.getenv("AWS_PG_USER"), password = Sys.getenv("AWS_PG_PW")
+  host = "aquarium-cabrini-001.ckvznubmydat.us-east-2.rds.amazonaws.com", port = 5432,
+  user = "shiny", password = "shiner"
+  # USER has had all PRIVILEGES revoked. Can only connect to aquarium db and SELECT from aquarium_data. NO CREATE OR INSERT PRIVILEGES!
 )
 
-time_now = Sys.time();
+time_now <- Sys.time();
 
 # Define UI for application that plots features of movies
 ui <- fluidPage(
@@ -26,42 +27,47 @@ ui <- fluidPage(
   # Sidebar layout with a input and output definitions
   sidebarLayout(
 
-    # Inputs
     sidebarPanel(
+      h4("Date Range"),
       dateRangeInput(inputId = "dateRange", label = NULL, start = Sys.Date()-7, end = Sys.Date(), min = NULL,
         max = NULL, format = "MM dd, yyyy", startview = "month", weekstart = 0,
         language = "en", separator = " to ", width = NULL, autoclose = TRUE),
 
       # hr(),
-      h4("Start Time"),
+      h4("Start Date Time"),
       fluidRow(
         column( width = 3,
-          selectInput(inputId = "start_time_hr", label = NULL,
+          selectInput(inputId = "start_time_hr", label = NULL, selected = "12",
                      choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12")
                     )
         ),
         column( width = 3,
-         selectInput(inputId = "start_time_min", label = NULL,
+         selectInput(inputId = "start_time_min", label = NULL, selected = "00",
                       choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60")
+                    )
+        ),
+        column( width = 3,
+          selectInput(inputId = "start_time_mer", label = NULL, selected = "AM",
+                     choices = c("AM", "PM")
                     )
         )
       ),
 
-      h4("Start Time"),
+      h4("End Date Time"),
       fluidRow(
         column( width = 3,
-          selectInput(inputId = "end_time_hr", label = NULL,
+          selectInput(inputId = "end_time_hr", label = NULL, selected = "11",
                      choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12")
                     )
         ),
         column( width = 3,
-         selectInput(inputId = "end_time_min", label = NULL,
+         selectInput(inputId = "end_time_min", label = NULL, selected = "59",
                       choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60")
                     )
         ),
         column( width = 3,
-          selectInput(inputId = "end_time_mer", label = NULL,
-                     choices = c("AM", "PM"), selected = "AM"
+          selectInput(inputId = "end_time_mer", label = NULL, selected = "PM",
+                     choices = c("AM", "PM")
                     )
         )
       ),
@@ -78,7 +84,7 @@ ui <- fluidPage(
 
       # Show data table
       checkboxInput(inputId = "show_data",
-                    label = "Show Data Table Below",
+                    label = "Show Data Table Beneath Graph",
                     value = FALSE),
 
       # Built with Shiny by RStudio
@@ -115,9 +121,20 @@ ui <- fluidPage(
 # Define server function required to create the scatterplot
 server <- function(input, output, session) {
 
-  selected_readings <- reactive ({ invalidateLater(30000)
-                         intermediate <- aws_pg %>% tbl("aquarium_data") %>%
-                         filter (observed_at > input$dateRange[1] & observed_at <= input$dateRange[2]) %>% collect()
+  start_datetime <- reactive ({
+    as.POSIXct(paste(as.character(input$dateRange[1]), " ", input$start_time_hr, ":", input$start_time_min, input$start_time_mer, sep = ""), format = "%F %I:%M%p")
+  })
+
+  end_datetime <- reactive ({
+    as.POSIXct(paste(as.character(input$dateRange[2]), " ", input$end_time_hr, ":", input$end_time_min, input$end_time_mer, sep = ""), format = "%F %I:%M%p")
+  })
+
+  selected_readings <- reactive ({
+    invalidateLater(30000)
+    start_time <- start_datetime()
+    end_time <- end_datetime()
+    intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>%
+                         filter (observed_at > start_time & observed_at <= end_time) %>% collect()
                          intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S %p")
                          intermediate
                        })
