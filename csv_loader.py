@@ -14,7 +14,7 @@ if __name__ == '__main__':
         # create a new cursor
         cur = conn.cursor()
         cur.execute(create_table)
-        with open('/home/michael/Documents/aqua_reports/20180719_data.csv', 'r') as f:
+        with open('/home/michael/Documents/aqua_reports/20180720.csv', 'r') as f:
             cur.copy_from(f, 'aquarium_data', sep=',', columns=('observed_at','ph_read','temp_read','lux_read'))
 
         conn.commit()
