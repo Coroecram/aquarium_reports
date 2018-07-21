@@ -3,38 +3,21 @@ library(shinythemes)
 library(ggplot2)
 library(dplyr)
 library(DT)
+library(pool)
 
 require("RPostgreSQL")
-pw <- {
-  Sys.getenv("AWS_PG_PW")
-}
 
-# loads the PostgreSQL driver
-drv <- DBI::dbDriver("PostgreSQL")
-
-# creates a connection to the postgres database
-# note that "con" will be used later in each connection to the database
-con <- dbConnect(drv, dbname = "aquarium",
-                 host = Sys.getenv("AWS_PG_HOST"), port = 5432,
-                 user = Sys.getenv("AWS_PG_USER"), password = pw)
-rm(pw) # removes the password
-
-# check for the cartable
-dbExistsTable(con, "aquarium_data")
-# TRUE
-
-# query the data from postgreSQL
-df_aqua <- dbGetQuery(con, "SELECT * from aquarium_data;")
-
-dbDisconnect(con)
-
-min_time = min(df_aqua$observed_at)
-max_time = max(df_aqua$observed_at)
-
+aws_pg <- dbPool(
+  DBI::dbDriver("PostgreSQL"),
+  dbname = "aquarium",
+  host = Sys.getenv("AWS_PG_HOST"), port = 5432,
+  user = Sys.getenv("AWS_PG_USER"), password = Sys.getenv("AWS_PG_PW")
+)
 
 # Define UI for application that plots features of movies
 ui <- fluidPage(
   theme = shinytheme("cosmo"),
+
   # App title
   titlePanel("Aquarium Pi pH, Temperature, and Lux Readings", windowTitle = "Aquarium Pi"),
 
@@ -43,14 +26,9 @@ ui <- fluidPage(
 
     # Inputs
     sidebarPanel(
-      # Date input
-      sliderInput("timeRange", label = "Time range",
-                   min = as.POSIXct(trunc(min_time, "mins")),
-                   max = as.POSIXct(trunc(max_time, "mins")),
-                   value = c(as.POSIXct(trunc(min_time, "mins")),
-                             as.POSIXct(trunc(max_time, "mins"))),
-                   timeFormat = "%m/%d/%y %H:%M%p"
-      ),
+      dateRangeInput(inputId = "dateRange", label = NULL, start = Sys.Date()-7, end = Sys.Date(), min = NULL,
+        max = NULL, format = "MM dd, yyyy", startview = "month", weekstart = 0,
+        language = "en", separator = " to ", width = NULL, autoclose = TRUE),
 
       # Select variable for y-axis
       # selectInput(inputId = "outputFormat",
@@ -101,15 +79,22 @@ ui <- fluidPage(
 # Define server function required to create the scatterplot
 server <- function(input, output, session) {
 
-  selected_readings <- reactive({
-    df_aqua %>% filter (observed_at > input$timeRange[1] & observed_at < input$timeRange[2])
-  })
+  selected_readings <- reactive ({ invalidateLater(30000)
+                         intermediate <- aws_pg %>% tbl("aquarium_data") %>%
+                         filter (observed_at > input$dateRange[1] & observed_at <= input$dateRange[2]) %>% collect()
+                         intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S %p")
+                         intermediate
+                       })
+
+  table_data <- reactive({
+                          subset(selected_readings(), select = c("str_observed_at", "ph_read", "temp_read", "lux_read"))
+                        })
 
   # Create scatterplot object of the pH data
   output$phPlot <- renderPlot({
     ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$ph_read)) +
       geom_line() +
-      xlim(input$timeRange[1], input$timeRange[2]) +
+      # xlim(input$dateRange[1], input$dateRange[2]) +
       labs(x = "Time Observed",
            y = "pH Reading",
            title = "Aquarium pH")
@@ -119,7 +104,7 @@ server <- function(input, output, session) {
   output$tempPlot <- renderPlot({
     ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$temp_read)) +
       geom_line() +
-      xlim(input$timeRange[1], input$timeRange[2]) +
+      # xlim(input$dateRange[1], input$dateRange[2]) +
       labs(x = "Time Observed",
            y = "Celsius Reading",
            title = "Aquarium Temperature")
@@ -129,23 +114,21 @@ server <- function(input, output, session) {
   output$luxPlot <- renderPlot({
     ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$lux_read)) +
       geom_line() +
-      xlim(input$timeRange[1], input$timeRange[2]) +
+      # xlim(input$dateRange[1], input$dateRange[2]) +
       labs(x = "Time Observed",
            y = "Lux Reading",
            title = "Aquarium Lux")
   })
 
-  df_aqua$str_observed_at = format(df_aqua$observed_at, "%B %d, %Y %H:%M:%S %p")
-
   output$tabTable <- DT::renderDataTable(
-    DT::datatable(data = subset(selected_readings(), select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
+    DT::datatable(data = table_data(),
                   colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
                   options = list(pageLength = 10),
                   rownames = FALSE)
   )
 
   output$beneathTable <- DT::renderDataTable(
-      DT::datatable(data = subset(selected_readings(), select = c("str_observed_at", "ph_read", "temp_read", "lux_read")),
+      DT::datatable(data = table_data(),
                   colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
                   options = list(pageLength = 5),
                   rownames = FALSE)
