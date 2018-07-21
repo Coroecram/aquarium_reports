@@ -14,6 +14,8 @@ aws_pg <- dbPool(
   user = Sys.getenv("AWS_PG_USER"), password = Sys.getenv("AWS_PG_PW")
 )
 
+time_now = Sys.time();
+
 # Define UI for application that plots features of movies
 ui <- fluidPage(
   theme = shinytheme("cosmo"),
@@ -29,6 +31,40 @@ ui <- fluidPage(
       dateRangeInput(inputId = "dateRange", label = NULL, start = Sys.Date()-7, end = Sys.Date(), min = NULL,
         max = NULL, format = "MM dd, yyyy", startview = "month", weekstart = 0,
         language = "en", separator = " to ", width = NULL, autoclose = TRUE),
+
+      # hr(),
+      h4("Start Time"),
+      fluidRow(
+        column( width = 3,
+          selectInput(inputId = "start_time_hr", label = NULL,
+                     choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12")
+                    )
+        ),
+        column( width = 3,
+         selectInput(inputId = "start_time_min", label = NULL,
+                      choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60")
+                    )
+        )
+      ),
+
+      h4("Start Time"),
+      fluidRow(
+        column( width = 3,
+          selectInput(inputId = "end_time_hr", label = NULL,
+                     choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12")
+                    )
+        ),
+        column( width = 3,
+         selectInput(inputId = "end_time_min", label = NULL,
+                      choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60")
+                    )
+        ),
+        column( width = 3,
+          selectInput(inputId = "end_time_mer", label = NULL,
+                     choices = c("AM", "PM"), selected = "AM"
+                    )
+        )
+      ),
 
       # Select variable for y-axis
       # selectInput(inputId = "outputFormat",
