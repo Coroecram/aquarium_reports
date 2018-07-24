@@ -1,12 +1,13 @@
-.date-ranges {
-  list-style-type: none;
+.date-range {
+  margin: 0 10%;
+  background-color: #0000EE;
 }
 
-.date-range {
-  width: 10%;
-  margin: 0 10%;
-  color: #0000EE;
-  cursor: pointer;
+.date-range:focus,
+.date-range:hover,
+.date-range:active,
+.date-range:target {
+  background-color: lightblue;
 }
 
 .credit-img {

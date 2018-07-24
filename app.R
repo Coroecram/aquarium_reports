@@ -3,6 +3,7 @@ library(shinythemes)
 library(ggplot2)
 library(dplyr)
 library(DT)
+library(lubridate)
 library(pool)
 
 require("RPostgreSQL")
@@ -78,16 +79,14 @@ ui <- fluidPage(
       h4("Previous:"),
 
       fluidRow(
-        tags$ul(class="date-ranges",
-          column( width = 3,
-            tags$li(class="date-range", "1Y")
-          ),
-          column( width = 3,
-            tags$li(class="date-range", "1W")
-          ),
-          column( width = 3,
-            tags$li(class="date-range", "1D")
-          )
+        column( width = 3, inputId="lastyear",
+          actionButton(inputId="lastyear", class="date-range", label="Year", icon=icon("calendar"))
+        ),
+        column( width = 3, inputId="lastweek",
+          actionButton(inputId="lastweek", class="date-range", label="Week", icon=icon("calendar"))
+        ),
+        column( width = 3, inputId="lastday",
+          actionButton(inputId="lastday", class="date-range", label="Day", icon=icon("calendar"))
         )
       ),
 
@@ -146,6 +145,48 @@ server <- function(input, output, session) {
 
   end_datetime <- reactive ({
     as.POSIXct(paste(as.character(input$dateRange[2]), " ", input$end_time_hr, ":", input$end_time_min, input$end_time_mer, sep = ""), format = "%F %I:%M%p")
+  })
+
+  changeRange <- function(start_time, end_time) {
+    updateDateRangeInput(session, "dateRange",
+     start = date(start_time),
+     end = date(end_time)
+   )
+   if(am(end_time) == TRUE) {
+      meridian <- "AM"
+      hour <- hour(start_time)
+      hour <- if (hour < 10) paste0("0", toString(hour)) else hour
+   }  else {
+      meridian <-"PM"
+      hour <- (hour(start_time) - 12)
+      hour <- if (hour < 10) paste0("0", toString(hour)) else hour
+  }
+
+   updateSelectInput(session, "start_time_hr", selected = hour)
+   updateSelectInput(session, "start_time_min", selected = toString(minute(start_time)))
+   updateSelectInput(session, "start_time_mer", selected = meridian)
+
+   updateSelectInput(session, "end_time_hr", selected = hour)
+   updateSelectInput(session, "end_time_min", selected = toString(minute(end_time)))
+   updateSelectInput(session, "end_time_mer", selected = meridian)
+  }
+
+  observeEvent(input$lastyear, {
+    start_time <- now()
+    year(start_time) <- year(start_time) - 1
+    changeRange(start_time, now())
+  })
+
+  observeEvent(input$lastweek, {
+    start_time <- now()
+    week(start_time) <- week(start_time) - 1
+    changeRange(start_time, now())
+  })
+
+  observeEvent(input$lastday, {
+    start_time <- now()
+    day(start_time) <- day(start_time) - 1
+    changeRange(start_time, now())
   })
 
   selected_readings <- reactive ({
