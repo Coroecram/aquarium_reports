@@ -176,7 +176,7 @@ server <- function(input, output, session) {
       hour <- if (hour < 10) paste0("0", toString(hour)) else hour
   }
 
-   updateSelectInput(session, "start_time_hr", month = hour)
+   updateSelectInput(session, "start_time_hr", selected = hour)
    updateSelectInput(session, "start_time_min", selected = toString(minute(start_time)))
    updateSelectInput(session, "start_time_mer", selected = meridian)
 
