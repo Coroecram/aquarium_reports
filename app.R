@@ -31,6 +31,20 @@ ui <- fluidPage(
   sidebarLayout(
 
     sidebarPanel(
+      h4("Latest Readings"),
+      tags$h6(class="reading", textOutput("latesttime")),
+      fluidRow(
+        column( width = 3,
+          tags$h5("pH"), tags$h6(class="reading", textOutput("latestph"))
+        ),
+        column( width = 3,
+          tags$h5("°C"), tags$h6(class="reading", textOutput("latesttemp"))
+        ),
+        column( width = 3, inputId="lastday",
+          tags$h5("Lux"), tags$h6(class="reading", textOutput("latestlux"))
+        )
+      ),
+      hr(),
       h4("Date Range"),
       dateRangeInput(inputId = "dateRange", label = NULL, start = Sys.Date()-7, end = Sys.Date(), min = NULL,
         max = NULL, format = "MM dd, yyyy", startview = "month", weekstart = 0,
@@ -111,7 +125,7 @@ ui <- fluidPage(
          img(src = "https://www.rstudio.com/wp-content/uploads/2014/04/shiny.png", class="credit-img", height = "30px"),
          "by",
          img(src = "https://www.rstudio.com/wp-content/uploads/2014/07/RStudio-Logo-Blue-Gray.png", class="credit-img", height = "30px"),
-         " by: ", a(href="http://www.mikebudnick.com", target="_blank", "Michael Budnick"))
+         " by ", a(href="http://www.mikebudnick.com", target="_blank", "Michael Budnick"))
   ),
 
     # Output:
@@ -202,6 +216,11 @@ server <- function(input, output, session) {
   table_data <- reactive({
                           subset(selected_readings(), select = c("str_observed_at", "ph_read", "temp_read", "lux_read"))
                         })
+
+  output$latesttime <- renderText({ toString(tail(table_data()$str_observed_at, 1)) })
+  output$latestph <- renderText({ toString(tail(table_data()$ph_read, 1)) })
+  output$latesttemp <- renderText({ toString(tail(table_data()$temp_read, 1)) })
+  output$latestlux <- renderText({ toString(tail(table_data()$lux_read, 1)) })
 
   # Create scatterplot object of the pH data
   output$phPlot <- renderPlot({
