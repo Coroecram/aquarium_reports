@@ -1,0 +1,14 @@
+.date-ranges {
+  list-style-type: none;
+}
+
+.date-range {
+  width: 10%;
+  margin: 0 10%;
+  color: #0000EE;
+  cursor: pointer;
+}
+
+.credit-img {
+  margin-bottom: 5px;
+}

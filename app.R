@@ -20,6 +20,8 @@ time_now <- Sys.time();
 # Define UI for application that plots features of movies
 ui <- fluidPage(
   theme = shinytheme("cosmo"),
+  tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
+
 
   # App title
   titlePanel("Aquarium Pi pH, Temperature, and Lux Readings", windowTitle = "Aquarium Pi"),
@@ -72,6 +74,23 @@ ui <- fluidPage(
         )
       ),
 
+      hr(),
+      h4("Previous:"),
+
+      fluidRow(
+        tags$ul(class="date-ranges",
+          column( width = 3,
+            tags$li(class="date-range", "1Y")
+          ),
+          column( width = 3,
+            tags$li(class="date-range", "1W")
+          ),
+          column( width = 3,
+            tags$li(class="date-range", "1D")
+          )
+        )
+      ),
+
       # Select variable for y-axis
       # selectInput(inputId = "outputFormat",
       #             label = "Output Format:",
@@ -90,10 +109,10 @@ ui <- fluidPage(
       # Built with Shiny by RStudio
       br(), br(),
       h5("Built with",
-         img(src = "https://www.rstudio.com/wp-content/uploads/2014/04/shiny.png", height = "30px"),
+         img(src = "https://www.rstudio.com/wp-content/uploads/2014/04/shiny.png", class="credit-img", height = "30px"),
          "by",
-         img(src = "https://www.rstudio.com/wp-content/uploads/2014/07/RStudio-Logo-Blue-Gray.png", height = "30px"),
-         ".")
+         img(src = "https://www.rstudio.com/wp-content/uploads/2014/07/RStudio-Logo-Blue-Gray.png", class="credit-img", height = "30px"),
+         " by: ", a(href="http://www.mikebudnick.com", target="_blank", "Michael Budnick"))
   ),
 
     # Output:

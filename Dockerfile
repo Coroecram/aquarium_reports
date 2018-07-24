@@ -7,7 +7,7 @@ RUN Rscript -e "install.packages(c('shiny', 'shinythemes', 'DT', 'ggplot2', 'dpl
 # for shiny options
 RUN export ADD=shiny && bash /etc/cont-init.d/add
 
-COPY app.R /srv/shiny-server/aquarium_report/
+COPY app.R /srv/shiny-server/aqua_report/
 
 EXPOSE 3838
 
