@@ -93,8 +93,8 @@ ui <- fluidPage(
       h4("Previous:"),
 
       fluidRow(
-        column( width = 3, inputId="lastyear",
-          actionButton(inputId="lastyear", class="date-range", label="Year", icon=icon("calendar"))
+        column( width = 3, inputId="lastmonth",
+          actionButton(inputId="lastmonth", class="date-range", label="Month", icon=icon("calendar"))
         ),
         column( width = 3, inputId="lastweek",
           actionButton(inputId="lastweek", class="date-range", label="Week", icon=icon("calendar"))
@@ -176,7 +176,7 @@ server <- function(input, output, session) {
       hour <- if (hour < 10) paste0("0", toString(hour)) else hour
   }
 
-   updateSelectInput(session, "start_time_hr", selected = hour)
+   updateSelectInput(session, "start_time_hr", month = hour)
    updateSelectInput(session, "start_time_min", selected = toString(minute(start_time)))
    updateSelectInput(session, "start_time_mer", selected = meridian)
 
@@ -185,9 +185,9 @@ server <- function(input, output, session) {
    updateSelectInput(session, "end_time_mer", selected = meridian)
   }
 
-  observeEvent(input$lastyear, {
+  observeEvent(input$lastmonth, {
     start_time <- now()
-    year(start_time) <- year(start_time) - 1
+    month(start_time) <- month(start_time) - 1
     changeRange(start_time, now())
   })
 
@@ -203,27 +203,50 @@ server <- function(input, output, session) {
     changeRange(start_time, now())
   })
 
+  latest_reading <- reactive ({
+    invalidateLater(30000)
+    intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>% top_n(n=1, wt=id) %>% collect()
+    if(length(intermediate$observed_at) != 0) {
+      intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S %p")
+      intermediate
+    }
+  })
+
   selected_readings <- reactive ({
     invalidateLater(30000)
     start_time <- start_datetime()
     end_time <- end_datetime()
+    hour(start_time) <- hour(start_time) - 4 # Correct for timezone; not sure what is happening TODO
+    hour(end_time) <- hour(end_time) - 4  # Correct for timezone; not sure what is happening TODO
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>%
                          filter (observed_at > start_time & observed_at <= end_time) %>% collect()
-                         intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S %p")
-                         intermediate
+                         if(length(intermediate$observed_at) != 0) {
+                           intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S %p")
+                           intermediate
+                         }
                        })
 
   table_data <- reactive({
+                          req(selected_readings()$observed_at)
                           subset(selected_readings(), select = c("str_observed_at", "ph_read", "temp_read", "lux_read"))
                         })
 
-  output$latesttime <- renderText({ toString(tail(table_data()$str_observed_at, 1)) })
-  output$latestph <- renderText({ toString(tail(table_data()$ph_read, 1)) })
-  output$latesttemp <- renderText({ toString(tail(table_data()$temp_read, 1)) })
-  output$latestlux <- renderText({ toString(tail(table_data()$lux_read, 1)) })
+  output$latesttime <- renderText({ req(latest_reading())
+                                    toString(tail(latest_reading()$str_observed_at, 1))
+                                  })
+  output$latestph <- renderText({ req(latest_reading())
+                                  toString(tail(latest_reading()$ph_read, 1))
+                                })
+  output$latesttemp <- renderText({ req(latest_reading())
+                                    toString(tail(latest_reading()$temp_read, 1))
+                                  })
+  output$latestlux <- renderText({ req(latest_reading())
+                                   toString(tail(latest_reading()$lux_read, 1))
+                                 })
 
   # Create scatterplot object of the pH data
   output$phPlot <- renderPlot({
+    req(selected_readings()$observed_at)
     ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$ph_read)) +
       geom_line() +
       # xlim(input$dateRange[1], input$dateRange[2]) +
@@ -234,6 +257,7 @@ server <- function(input, output, session) {
 
   # Create scatterplot object of the Temperature data
   output$tempPlot <- renderPlot({
+    req(selected_readings()$observed_at)
     ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$temp_read)) +
       geom_line() +
       # xlim(input$dateRange[1], input$dateRange[2]) +
@@ -244,6 +268,7 @@ server <- function(input, output, session) {
 
   # Create scatterplot object of the pH data
   output$luxPlot <- renderPlot({
+    req(selected_readings()$observed_at)
     ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$lux_read)) +
       geom_line() +
       # xlim(input$dateRange[1], input$dateRange[2]) +
@@ -267,13 +292,13 @@ server <- function(input, output, session) {
   )
 
 
-                  observeEvent(input$show_data, {
-                    if(input$show_data){
-                      hideTab(inputId = "tabsetpanel", target = "Data")
-                    } else {
-                      showTab(inputId = "tabsetpanel", target = "Data")
-                    }
-                  })
+  observeEvent(input$show_data, {
+    if(input$show_data){
+      hideTab(inputId = "tabsetpanel", target = "Data")
+    } else {
+      showTab(inputId = "tabsetpanel", target = "Data")
+    }
+  })
 }
 
 # Create Shiny app object
