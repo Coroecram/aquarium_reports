@@ -187,27 +187,36 @@ server <- function(input, output, session) {
 
   observeEvent(input$lastmonth, {
     start_time <- now()
+    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
     month(start_time) <- month(start_time) - 1
-    changeRange(start_time, now())
+    end_time <- now()
+    hour(end_time) <- hour(end_time) - 4 # Shiny server times in UTC
+    changeRange(start_time, end_time)
   })
 
   observeEvent(input$lastweek, {
     start_time <- now()
+    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
     week(start_time) <- week(start_time) - 1
-    changeRange(start_time, now())
+    end_time <- now()
+    hour(end_time) <- hour(end_time) - 4 # Shiny server times in UTC
+    changeRange(start_time, end_time
   })
 
   observeEvent(input$lastday, {
     start_time <- now()
+    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
     day(start_time) <- day(start_time) - 1
-    changeRange(start_time, now())
+    end_time <- now()
+    hour(end_time) <- hour(end_time) - 4 # Shiny server times in UTC
+    changeRange(start_time, end_time)
   })
 
   latest_reading <- reactive ({
     invalidateLater(30000)
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>% top_n(n=1, wt=id) %>% collect()
     if(length(intermediate$observed_at) != 0) {
-      intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S %p")
+      intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %I:%M:%S %p")
       intermediate
     }
   })
@@ -216,12 +225,12 @@ server <- function(input, output, session) {
     invalidateLater(30000)
     start_time <- start_datetime()
     end_time <- end_datetime()
-    hour(start_time) <- hour(start_time) - 4 # Correct for timezone; not sure what is happening TODO
-    hour(end_time) <- hour(end_time) - 4  # Correct for timezone; not sure what is happening TODO
+    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
+    hour(end_time) <- hour(end_time) - 4  # Shiny server times in UTC
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>%
                          filter (observed_at > start_time & observed_at <= end_time) %>% collect()
                          if(length(intermediate$observed_at) != 0) {
-                           intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S %p")
+                           intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %I:%M:%S %p")
                            intermediate
                          }
                        })
