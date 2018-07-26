@@ -192,6 +192,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$lastmonth, {
     start_time <- now()
+    hour(start_time) <- hour(start_time)
     month(start_time) <- month(start_time) - 1
     end_time <- now()
     changeRange(start_time, end_time)
@@ -199,6 +200,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$lastweek, {
     start_time <- now()
+    hour(start_time) <- hour(start_time)
     week(start_time) <- week(start_time) - 1
     end_time <- now()
     changeRange(start_time, end_time)
@@ -206,6 +208,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$lastday, {
     start_time <- now()
+    hour(start_time) <- hour(start_time)
     day(start_time) <- day(start_time) - 1
     end_time <- now()
     changeRange(start_time, end_time)
@@ -225,12 +228,22 @@ server <- function(input, output, session) {
     invalidateLater(300000)
     start_time <- start_datetime()
     end_time <- end_datetime()
+<<<<<<< HEAD
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>%
                          filter (observed_at > start_time & observed_at <= end_time) %>% collect()
                          if(length(intermediate$observed_at) != 0) {
                            attributes(intermediate$observed_at)$tzone = "UTC" #CANNOT CHANGE TZ OF SHINY SERVER
                            intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S")
                            intermediate[order(intermediate$id),]
+=======
+    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
+    hour(end_time) <- hour(end_time) - 4  # Shiny server times in UTC
+    intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>%
+                         filter (observed_at > start_time & observed_at <= end_time) %>% collect()
+                         if(length(intermediate$observed_at) != 0) {
+                           intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %I:%M:%S %p")
+                           intermediate
+>>>>>>> f7c506c4c2f1b5656329ffd6fb1626b042ba176d
                          }
                        })
 
