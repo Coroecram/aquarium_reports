@@ -7,9 +7,10 @@ library(lubridate)
 library(pool)
 
 require("RPostgreSQL")
+Sys.setenv(TZ = "America/New_York")
 
 aws_pg <- dbPool(
-  DBI::dbDriver("PostgreSQL"),
+  PostgreSQL(),
   dbname = "aquarium",
   host = "aquarium-cabrini-001.ckvznubmydat.us-east-2.rds.amazonaws.com", port = 5432,
   user = "shiny", password = "shiner"
@@ -154,84 +155,82 @@ ui <- fluidPage(
 server <- function(input, output, session) {
 
   start_datetime <- reactive ({
-    as.POSIXct(paste(as.character(input$dateRange[1]), " ", input$start_time_hr, ":", input$start_time_min, input$start_time_mer, sep = ""), format = "%F %I:%M%p")
+    as.POSIXct(paste(as.character(input$dateRange[1]), " ", input$start_time_hr, ":", input$start_time_min, input$start_time_mer, sep = ""), tz="UTC", format = "%F %I:%M%p")
   })
 
   end_datetime <- reactive ({
-    as.POSIXct(paste(as.character(input$dateRange[2]), " ", input$end_time_hr, ":", input$end_time_min, input$end_time_mer, sep = ""), format = "%F %I:%M%p")
+    as.POSIXct(paste(as.character(input$dateRange[2]), " ", input$end_time_hr, ":", input$end_time_min, input$end_time_mer, sep = ""), tz="UTC", format = "%F %I:%M%p")
   })
 
   changeRange <- function(start_time, end_time) {
     updateDateRangeInput(session, "dateRange",
      start = date(start_time),
      end = date(end_time)
-   )
-   if(am(end_time) == TRUE) {
+    )
+    if(am(end_time) == TRUE) {
       meridian <- "AM"
       hour <- hour(start_time)
       hour <- if (hour < 10) paste0("0", toString(hour)) else hour
-   }  else {
+    }  else {
       meridian <-"PM"
-      hour <- (hour(start_time) - 12)
+      hour <- hour(start_time)
+      hour <- if (hour != 12) (hour(start_time) - 12) else hour
       hour <- if (hour < 10) paste0("0", toString(hour)) else hour
-  }
+    }
 
-   updateSelectInput(session, "start_time_hr", selected = hour)
-   updateSelectInput(session, "start_time_min", selected = toString(minute(start_time)))
-   updateSelectInput(session, "start_time_mer", selected = meridian)
+    minute <- minute(start_time)
+    minute <- if (minute < 10) paste0("0", toString(minute)) else minute
 
-   updateSelectInput(session, "end_time_hr", selected = hour)
-   updateSelectInput(session, "end_time_min", selected = toString(minute(end_time)))
-   updateSelectInput(session, "end_time_mer", selected = meridian)
+    updateSelectInput(session, "start_time_hr", selected = toString(hour))
+    updateSelectInput(session, "start_time_min", selected = toString(minute))
+    updateSelectInput(session, "start_time_mer", selected = meridian)
+
+    updateSelectInput(session, "end_time_hr", selected = toString(hour))
+    updateSelectInput(session, "end_time_min", selected = toString(minute))
+    updateSelectInput(session, "end_time_mer", selected = meridian)
   }
 
   observeEvent(input$lastmonth, {
     start_time <- now()
-    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
     month(start_time) <- month(start_time) - 1
     end_time <- now()
-    hour(end_time) <- hour(end_time) - 4 # Shiny server times in UTC
     changeRange(start_time, end_time)
   })
 
   observeEvent(input$lastweek, {
     start_time <- now()
-    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
     week(start_time) <- week(start_time) - 1
     end_time <- now()
-    hour(end_time) <- hour(end_time) - 4 # Shiny server times in UTC
     changeRange(start_time, end_time)
   })
 
   observeEvent(input$lastday, {
     start_time <- now()
-    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
     day(start_time) <- day(start_time) - 1
     end_time <- now()
-    hour(end_time) <- hour(end_time) - 4 # Shiny server times in UTC
     changeRange(start_time, end_time)
   })
 
   latest_reading <- reactive ({
-    invalidateLater(30000)
+    invalidateLater(300000)
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>% top_n(n=1, wt=id) %>% collect()
     if(length(intermediate$observed_at) != 0) {
+      attributes(intermediate$observed_at)$tzone = "UTC" #CANNOT CHANGE TZ OF SHINY SERVER
       intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %I:%M:%S %p")
-      intermediate
+      intermediate[order(intermediate$id),]
     }
   })
 
   selected_readings <- reactive ({
-    invalidateLater(30000)
+    invalidateLater(300000)
     start_time <- start_datetime()
     end_time <- end_datetime()
-    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
-    hour(end_time) <- hour(end_time) - 4  # Shiny server times in UTC
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>%
                          filter (observed_at > start_time & observed_at <= end_time) %>% collect()
                          if(length(intermediate$observed_at) != 0) {
-                           intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %I:%M:%S %p")
-                           intermediate
+                           attributes(intermediate$observed_at)$tzone = "UTC" #CANNOT CHANGE TZ OF SHINY SERVER
+                           intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S")
+                           intermediate[order(intermediate$id),]
                          }
                        })
 
