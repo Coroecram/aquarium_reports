@@ -215,7 +215,7 @@ server <- function(input, output, session) {
   })
 
   latest_reading <- reactive ({
-    invalidateLater(300000)
+    invalidateLater(30000)
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>% top_n(n=1, wt=id) %>% collect()
     if(length(intermediate$observed_at) != 0) {
       attributes(intermediate$observed_at)$tzone = "UTC" #CANNOT CHANGE TZ OF SHINY SERVER
@@ -225,7 +225,7 @@ server <- function(input, output, session) {
   })
 
   selected_readings <- reactive ({
-    invalidateLater(300000)
+    invalidateLater(30000)
     start_time <- start_datetime()
     end_time <- end_datetime()
 <<<<<<< HEAD
