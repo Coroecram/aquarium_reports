@@ -12,9 +12,7 @@ Sys.setenv(TZ = "America/New_York")
 aws_pg <- dbPool(
   PostgreSQL(),
   dbname = "aquarium",
-  host = "aquarium-cabrini-001.ckvznubmydat.us-east-2.rds.amazonaws.com", port = 5432,
-  user = "shiny", password = "shiner"
-  # USER has had all PRIVILEGES revoked. Can only connect to aquarium db and SELECT from aquarium_data. NO CREATE OR INSERT PRIVILEGES!
+  host = "localhost", port = 5432
 )
 
 time_now <- Sys.time();
@@ -215,7 +213,7 @@ server <- function(input, output, session) {
   })
 
   latest_reading <- reactive ({
-    invalidateLater(30000)
+    invalidateLater(300000)
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>% top_n(n=1, wt=id) %>% collect()
     if(length(intermediate$observed_at) != 0) {
       attributes(intermediate$observed_at)$tzone = "UTC" #CANNOT CHANGE TZ OF SHINY SERVER
@@ -225,25 +223,15 @@ server <- function(input, output, session) {
   })
 
   selected_readings <- reactive ({
-    invalidateLater(30000)
+    invalidateLater(300000)
     start_time <- start_datetime()
     end_time <- end_datetime()
-<<<<<<< HEAD
     intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>%
                          filter (observed_at > start_time & observed_at <= end_time) %>% collect()
                          if(length(intermediate$observed_at) != 0) {
                            attributes(intermediate$observed_at)$tzone = "UTC" #CANNOT CHANGE TZ OF SHINY SERVER
                            intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %H:%M:%S")
                            intermediate[order(intermediate$id),]
-=======
-    hour(start_time) <- hour(start_time) - 4 # Shiny server times in UTC
-    hour(end_time) <- hour(end_time) - 4  # Shiny server times in UTC
-    intermediate <- aws_pg %>% tbl("aquarium_data", in_schema("public")) %>%
-                         filter (observed_at > start_time & observed_at <= end_time) %>% collect()
-                         if(length(intermediate$observed_at) != 0) {
-                           intermediate$str_observed_at <- format(intermediate$observed_at, "%B %d, %Y %I:%M:%S %p")
-                           intermediate
->>>>>>> f7c506c4c2f1b5656329ffd6fb1626b042ba176d
                          }
                        })
 
@@ -287,11 +275,17 @@ server <- function(input, output, session) {
            title = "Aquarium Temperature")
   })
 
+#fc8d59
+#ffffbf
+#91bfdb
+
   # Create scatterplot object of the pH data
   output$luxPlot <- renderPlot({
     req(selected_readings()$observed_at)
     ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$lux_read)) +
       geom_line() +
+      scale_fill_brewer(type = "div", palette = "RdBu", direction = 1,
+  aesthetics = "fill") +
       # xlim(input$dateRange[1], input$dateRange[2]) +
       labs(x = "Time Observed",
            y = "Lux Reading",
