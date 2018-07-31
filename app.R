@@ -5,7 +5,6 @@ library(dplyr)
 library(DT)
 library(lubridate)
 library(pool)
-library(tidyverse)
 
 source("palettes.R")
 
