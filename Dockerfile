@@ -1,7 +1,7 @@
 FROM rocker/tidyverse
 MAINTAINER contact@mikebudnick.com
 
-RUN Rscript -e "install.packages(c('shiny', 'shinythemes', 'DT', 'ggplot2', 'dplyr', 'lubridate', 'pool'))"
+RUN Rscript -e "install.packages(c('shiny', 'shinythemes', 'DT', 'ggplot2', 'dplyr', 'lubridate', 'pool', 'tidyverse'))"
 
 # See https://github.com/rocker-org/rocker-versioned/blob/master/rstudio/README.md
 # for shiny options
@@ -9,6 +9,7 @@ RUN export ADD=shiny && bash /etc/cont-init.d/add
 
 
 COPY app.R /srv/shiny-server/aqua_report/
+COPY palettes.R /srv/shiny-server/aqua_report/
 COPY www /srv/shiny-server/aqua_report/www
 
 EXPOSE 3838

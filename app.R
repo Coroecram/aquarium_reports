@@ -5,14 +5,22 @@ library(dplyr)
 library(DT)
 library(lubridate)
 library(pool)
+library(tidyverse)
+
+source("palettes.R")
+
+readRenviron("~/aws.Renviron")
 
 require("RPostgreSQL")
 Sys.setenv(TZ = "America/New_York")
 
+require("RPostgreSQL")
+
 aws_pg <- dbPool(
   PostgreSQL(),
-  dbname = "aquarium",
-  host = "localhost", port = 5432
+  dbname = Sys.getenv('PG_DB'),
+  host = Sys.getenv('PG_HOST'), port = Sys.getenv('PG_PORT'),
+  user = Sys.getenv('PG_USER'), password = Sys.getenv('PG_PW')
 )
 
 time_now <- Sys.time();
@@ -59,7 +67,7 @@ ui <- fluidPage(
         ),
         column( width = 3,
          selectInput(inputId = "start_time_min", label = NULL, selected = "00",
-                      choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60")
+                      choices = c("00", "15","30","45")
                     )
         ),
         column( width = 3,
@@ -78,7 +86,7 @@ ui <- fluidPage(
         ),
         column( width = 3,
          selectInput(inputId = "end_time_min", label = NULL, selected = "59",
-                      choices = c("00","01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60")
+                      choices = c("00", "15","30","45")
                     )
         ),
         column( width = 3,
@@ -93,13 +101,13 @@ ui <- fluidPage(
 
       fluidRow(
         column( width = 3, inputId="lastmonth",
-          actionButton(inputId="lastmonth", class="date-range", label="Month", icon=icon("calendar"))
+          actionButton(inputId="lastmonth", class="date-range", label="30 Days", icon=icon("calendar"))
         ),
         column( width = 3, inputId="lastweek",
-          actionButton(inputId="lastweek", class="date-range", label="Week", icon=icon("calendar"))
+          actionButton(inputId="lastweek", class="date-range", label="7 Days", icon=icon("calendar"))
         ),
         column( width = 3, inputId="lastday",
-          actionButton(inputId="lastday", class="date-range", label="Day", icon=icon("calendar"))
+          actionButton(inputId="lastday", class="date-range", label="1 Day", icon=icon("calendar"))
         )
       ),
 
@@ -132,16 +140,16 @@ ui <- fluidPage(
 
       tabsetPanel(type = "tabs",
                   id = "tabsetpanel",
-                  tabPanel(title = "pH",
+                  tabPanel(title = "Aquarium pH",
                            plotOutput(outputId = "phPlot")),
                            br(),
-                  tabPanel(title = "Temp",
+                  tabPanel(title = "Aquarium °C",
                           plotOutput(outputId = "tempPlot")),
                           br(),
-                  tabPanel(title = "Lux",
+                  tabPanel(title = "Ambient Lux",
                          plotOutput(outputId = "luxPlot")),
                          br(),
-                  tabPanel(title = "Data",
+                  tabPanel(title = "Data Table",
                          DT::dataTableOutput(outputId = "tabTable"))
       ),
         conditionalPanel("input.show_data == true", DT::dataTableOutput(outputId = "beneathTable"))
@@ -161,6 +169,7 @@ server <- function(input, output, session) {
   })
 
   changeRange <- function(start_time, end_time) {
+    start_time <- lubridate::round_date(start_time, "15 minutes")
     updateDateRangeInput(session, "dateRange",
      start = date(start_time),
      end = date(end_time)
@@ -191,7 +200,7 @@ server <- function(input, output, session) {
   observeEvent(input$lastmonth, {
     start_time <- now()
     hour(start_time) <- hour(start_time)
-    month(start_time) <- month(start_time) - 1
+    day(start_time) <- day(start_time) - 30
     end_time <- now()
     changeRange(start_time, end_time)
   })
@@ -256,52 +265,58 @@ server <- function(input, output, session) {
   # Create scatterplot object of the pH data
   output$phPlot <- renderPlot({
     req(selected_readings()$observed_at)
-    ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$ph_read)) +
-      geom_line() +
-      # xlim(input$dateRange[1], input$dateRange[2]) +
+    ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$ph_read,  colour = selected_readings()$ph_read)) +
+      geom_line(aes(group = 1)) +
+      scale_color_custom(palette = "ph", discrete = FALSE) +
+      theme(
+        panel.background = element_rect(fill = "lightblue",
+                              colour = "lightblue",
+                              size = 0.5, linetype = "solid"),
+                              legend.title=element_blank()) +
       labs(x = "Time Observed",
-           y = "pH Reading",
-           title = "Aquarium pH")
+           y = "pH Reading")
   })
-
-  # Create scatterplot object of the Temperature data
+  # Create scatterplot object of the Temperature °C data
   output$tempPlot <- renderPlot({
     req(selected_readings()$observed_at)
-    ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$temp_read)) +
-      geom_line() +
-      # xlim(input$dateRange[1], input$dateRange[2]) +
+    ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$temp_read, colour = selected_readings()$temp_read)) +
+      geom_line(aes(group = 1)) +
+      scale_color_custom(discrete = FALSE, palette = 'temp') +
+      theme(
+        panel.background = element_rect(fill = "lightgreen",
+                              colour = "lightgreen",
+                              size = 0.5, linetype = "solid"),
+                              legend.title=element_blank()) +
       labs(x = "Time Observed",
-           y = "Celsius Reading",
-           title = "Aquarium Temperature")
+           y = "Celsius Reading")
   })
 
-#fc8d59
-#ffffbf
-#91bfdb
-
-  # Create scatterplot object of the pH data
+  # Create scatterplot object of the Lux data
   output$luxPlot <- renderPlot({
     req(selected_readings()$observed_at)
-    ggplot(data = selected_readings(), aes_string(x = selected_readings()$observed_at, y = selected_readings()$lux_read)) +
-      geom_line() +
-      scale_fill_brewer(type = "div", palette = "RdBu", direction = 1,
-  aesthetics = "fill") +
-      # xlim(input$dateRange[1], input$dateRange[2]) +
+    ggplot(data = selected_readings(), aes(selected_readings()$observed_at, selected_readings()$lux_read, colour = selected_readings()$lux_read)) +
+      geom_line(aes(group = 1)) +
+      scale_color_custom(discrete = FALSE, palette = 'mixed') +
+      theme(
+          panel.background = element_rect(fill = "#fff7bc",
+                                colour = "#fff7bc",
+                                size = 0.5, linetype = "solid"),
+                                legend.title=element_blank()
+                              ) +
       labs(x = "Time Observed",
-           y = "Lux Reading",
-           title = "Aquarium Lux")
+           y = "Lux Reading")
   })
 
   output$tabTable <- DT::renderDataTable(
     DT::datatable(data = table_data(),
-                  colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
+                  colnames = c("Observed at", "pH Reading", "Temperature Reading (°C)", "Lux Reading"),
                   options = list(pageLength = 10),
                   rownames = FALSE)
   )
 
   output$beneathTable <- DT::renderDataTable(
       DT::datatable(data = table_data(),
-                  colnames = c("Observed at", "pH Reading", "Temperature Reading (C)", "Lux Reading"),
+                  colnames = c("Observed at", "pH Reading", "Temperature Reading (°C)", "Lux Reading"),
                   options = list(pageLength = 5),
                   rownames = FALSE)
   )
