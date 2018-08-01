@@ -8,7 +8,7 @@ library(pool)
 
 source("palettes.R")
 
-readRenviron("~/aws.Renviron")
+readRenviron("/srv/shiny-server/aqua_report/aws.Renviron")
 
 require("RPostgreSQL")
 Sys.setenv(TZ = "America/New_York")
@@ -21,8 +21,6 @@ aws_pg <- dbPool(
   host = Sys.getenv('PG_HOST'), port = Sys.getenv('PG_PORT'),
   user = Sys.getenv('PG_USER'), password = Sys.getenv('PG_PW')
 )
-
-time_now <- Sys.time();
 
 # Define UI for application that plots features of movies
 ui <- fluidPage(
