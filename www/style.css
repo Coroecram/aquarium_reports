@@ -1,0 +1,20 @@
+.date-range {
+  margin: 0 10%;
+  background-color: #0000EE;
+}
+
+.date-range:focus,
+.date-range:hover,
+.date-range:active,
+.date-range:target {
+  background-color: lightblue;
+}
+
+.credit-img {
+  margin-bottom: 5px;
+}
+
+.reading {
+  font-size: 20px;
+  color: blue;
+}
